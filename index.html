@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Auth Test</title>
+    <!-- Google Identity Services Script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 320px;
+        }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .login-btn { width: 100%; padding: 10px; background: #4285F4; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 5px; }
+        .login-btn:hover { background: #357ae8; }
+        hr { margin: 20px 0; border: 0; border-top: 1px solid #ddd; }
+        #response {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+            white-space: pre-wrap;
+            text-align: left;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 400px;
+            word-break: break-all;
+        }
+        .google-btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>Login</h2>
+        
+        <!-- Normal Email / Password Form -->
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+
+        <hr>
+        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">Or continue with Google</p>
+
+        <!-- Google Sign-In Button Container -->
+        <div id="g_id_onload"
+             data-client_id="757284499102-3t0lodhv10bb2orhtbpqptnkg44nti7g.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+
+        <div id="response">Response will appear here...</div>
+    </div>
+
+    <script>
+        // 1. Normal Email/Password Login Logic
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resBox = document.getElementById('response');
+            resBox.innerText = "Logging in...";
+
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                resBox.innerText = JSON.stringify(data, null, 2);
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    if (data.user.role === 'admin') {
+                        alert("Welcome to Admin Panel!");
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                resBox.innerText = "Error connecting to server!";
+            }
+        });
+
+        // 2. Google Sign-In Logic (Tumhara original wala)
+        async function handleCredentialResponse(response) {
+            const idToken = response.credential;
+            const resBox = document.getElementById('response');
+            resBox.innerText = "Verifying with backend...";
+
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/google', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ idToken })
+                });
+
+                const data = await res.json();
+                resBox.innerText = JSON.stringify(data, null, 2);
+                console.log('Server Response:', data);
+
+                if(data.success){
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    if(data.user.role === "admin"){
+                        alert("Welcome to admin pannel");
+                        window.location.href = 'admin.html';
+                    }
+                    else{
+                        window.location.href = 'dashboard.html';
+                    }
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                resBox.innerText = "Error connecting to server!";
+            }
+        }
+    </script>
+
+</body>
+</html>

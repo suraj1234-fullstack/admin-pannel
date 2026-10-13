@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; font-size: 14px; }
+        th { background: #4285F4; color: white; }
+        .delete-btn { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        .delete-btn:hover { background: #cc0000; }
+        .admin-btn { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .admin-btn:hover { background: #218838; }
+        .logout-btn { background: #333; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .logout-btn:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-bar">
+            <h1 id="welcomeText" style="margin: 0; font-size: 22px;">Welcome to Admin Panel</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <h3>All Users List</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                    
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <!-- Users yahan dynamically load honge -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 1. Frontend Security Check
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+
+        if (!token || !user || user.role !== 'admin') {
+            alert("Unauthorized access! Redirecting to login...");
+            window.location.href = 'index.html';
+        } else {
+            document.getElementById('welcomeText').innerText = `Welcome, ${user.name} (Admin)`;
+        }
+
+        // 2. Backend se Users Fetch karne ka function
+        async function fetchUsers() {
+            try {
+                const res = await fetch('http://localhost:5500/api/admin/users', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('userTableBody');
+                    tbody.innerHTML = '';
+                    
+                    data.users.forEach(u => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${u.name || 'N/A'}</td>
+                                <td>${u.email}</td>
+                                <td>${u.role}</td>
+                                <td>
+                                    <button class="delete-btn" onclick="deleteUser('${u._id}')">Delete</button>
+                                    ${u.role !== 'admin' ? `<button class="admin-btn" onclick="makeAdmin('${u.email}')">Make Admin</button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching users:", err);
+            }
+        }
+
+        // 3. User ko Admin banane ka function
+        async function makeAdmin(email) {
+            if (!confirm(`Kya aap ${email} ko admin banana chahte hain?`)) return;
+
+            try {
+                const res = await fetch('http://localhost:5500/api/admin/make-admin', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(data.message);
+                    fetchUsers(); // Table refresh karo
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error("Error making admin:", err);
+            }
+        }
+
+        // 4. User Delete karne ka function
+        async function deleteUser(userId) {
+            if (!confirm("Kya aap sach mein is user ko delete karna chahte hain?")) return;
+
+            try {
+                const res = await fetch(`http://localhost:5500/api/admin/user/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert("User deleted successfully!");
+                    fetchUsers(); // Table refresh karo
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error("Error deleting user:", err);
+            }
+        }
+
+        // 5. Logout Function
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // Page load hote hi users fetch karo
+        fetchUsers();
+    </script>
+
+</body>
+</html>

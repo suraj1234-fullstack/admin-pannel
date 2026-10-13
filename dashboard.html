@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        img {
+            border-radius: 50%;
+            width: 90px;
+            height: 90px;
+            margin-bottom: 15px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <img id="userPic" src="" alt="Profile Picture">
+        <h2 id="userName">Welcome!</h2>
+        <p id="userEmail"></p>
+        <button onclick="handleLogout()">Logout</button>
+    </div>
+
+    <script>
+        // 1. Check karna ki token hai ya nahi (Protected Route check)
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (!token) {
+            // Agar token nahi hai, toh wapas login page par bhej do
+            alert("Please login first!");
+            window.location.href = 'index.html';
+        } else {
+            // Agar user logged in hai, toh data screen par dikhao
+            const user = JSON.parse(userStr);
+            document.getElementById('userName').innerText = `Welcome, ${user.name}!`;
+            document.getElementById('userEmail').innerText = user.email;
+            if (user.picture) {
+                document.getElementById('userPic').src = user.picture;
+            }
+        }
+
+        // 2. Logout function
+        function handleLogout() {
+            localStorage.clear(); // Local storage saaf kar do
+            alert("Logged out successfully!");
+            window.location.href = 'index.html'; // Login page par redirect
+        }
+    </script>
+
+</body>
+</html>
